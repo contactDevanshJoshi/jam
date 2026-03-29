@@ -6,7 +6,6 @@
 <title>Hydration Tracker</title>
 
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&family=Quicksand&display=swap" rel="stylesheet">
 
@@ -17,7 +16,6 @@ body { font-family: 'Quicksand', sans-serif; }
 .progress-fill { background: linear-gradient(90deg,#a8d8ff,#c4b5fd,#fbb6ce); }
 .title-font { font-family: 'Dancing Script', cursive; }
 </style>
-
 </head>
 
 <body class="h-full">
@@ -52,10 +50,17 @@ Undo
 </div>
 </div>
 
-<!-- 🔥 Firebase (fixed global setup) -->
+<!-- 🔔 POPUP -->
+<div id="popup" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+background:white;padding:15px 25px;border-radius:20px;display:none;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);z-index:999;">
+<span id="popup-text"></span>
+</div>
+
+<!-- 🔥 Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } 
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot } 
 from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -67,56 +72,48 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// make global
+// global
 window.db = db;
 window.setDoc = setDoc;
 window.getDoc = getDoc;
 window.doc = doc;
 window.collection = collection;
 window.getDocs = getDocs;
+window.onSnapshot = onSnapshot;
 
-// after Firebase ready → load
 window.dispatchEvent(new Event("firebase-ready"));
 </script>
 
-<!-- MAIN SCRIPT -->
 <script>
 let count = 0;
 let goal = 12;
+let lastTrigger = 0;
 
 function updateUI() {
-  document.getElementById("current-count").innerText = count;
-  document.getElementById("goal-display").innerText = goal;
-  document.getElementById("progress-bar").style.width = (count/goal*100) + "%";
+  current-count.innerText = count;
+  goal-display.innerText = goal;
+  progress-bar.style.width = (count/goal*100) + "%";
 }
 
 // SAVE
 async function saveData() {
-  if (!window.db) return;
-
   const today = new Date().toISOString().split("T")[0];
 
-  await window.setDoc(window.doc(window.db, "hydration", today), {
+  await setDoc(doc(db, "hydration", today), {
     date: today,
     glasses: count,
     completed: count >= goal
   });
-
-  console.log("Saved ✅");
 }
 
 // LOAD
 async function loadData() {
-  if (!window.db) return;
-
   const today = new Date().toISOString().split("T")[0];
+  const snap = await getDoc(doc(db, "hydration", today));
 
-  const docSnap = await window.getDoc(window.doc(window.db, "hydration", today));
-
-  if (docSnap.exists()) {
-    count = docSnap.data().glasses || 0;
+  if (snap.exists()) {
+    count = snap.data().glasses || 0;
     updateUI();
-    console.log("Loaded ✅");
   }
 }
 
@@ -126,10 +123,9 @@ async function addGlass() {
     count++;
     updateUI();
     await saveData();
-    calculateStreak();
 
     if (count === goal) {
-      alert("🎁 Surprise 💙 Proud of you 😌");
+      showPopup(window.surpriseText || "🎁 Done 💙");
     }
   }
 }
@@ -145,12 +141,9 @@ function undoGlass() {
 
 // STREAK
 async function calculateStreak() {
-  if (!window.db) return;
-
-  const snapshot = await window.getDocs(window.collection(window.db, "hydration"));
+  const snapshot = await getDocs(collection(db, "hydration"));
 
   let dates = [];
-
   snapshot.forEach(doc => {
     if (doc.data().completed) dates.push(doc.data().date);
   });
@@ -163,7 +156,6 @@ async function calculateStreak() {
   for (let i = 0; i < dates.length; i++) {
     let d = new Date(dates[i]);
     let diff = Math.floor((today - d) / (1000*60*60*24));
-
     if (diff === streak) streak++;
     else break;
   }
@@ -171,10 +163,40 @@ async function calculateStreak() {
   document.getElementById("streak-count").innerText = `🔥 ${streak} days`;
 }
 
-// wait until firebase ready
+// 🔥 REAL-TIME SETTINGS
+function listenSettings() {
+  const ref = doc(db, "settings", "main");
+
+  onSnapshot(ref, (snap) => {
+    if (!snap.exists()) return;
+
+    const data = snap.data();
+
+    if (data.goal) goal = data.goal;
+    if (data.surprise) window.surpriseText = data.surprise;
+
+    if (data.trigger && data.trigger !== lastTrigger) {
+      lastTrigger = data.trigger;
+      if (data.message) showPopup(data.message);
+    }
+
+    updateUI();
+  });
+}
+
+// POPUP
+function showPopup(text) {
+  popup-text.innerText = text;
+  popup.style.display = "block";
+
+  setTimeout(() => popup.style.display = "none", 3000);
+}
+
+// INIT
 window.addEventListener("firebase-ready", () => {
   loadData();
   calculateStreak();
+  listenSettings();
 });
 
 updateUI();
