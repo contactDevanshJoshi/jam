@@ -72,7 +72,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// global
+// make global
 window.db = db;
 window.setDoc = setDoc;
 window.getDoc = getDoc;
@@ -84,22 +84,24 @@ window.onSnapshot = onSnapshot;
 window.dispatchEvent(new Event("firebase-ready"));
 </script>
 
+<!-- MAIN SCRIPT -->
 <script>
 let count = 0;
 let goal = 12;
 let lastTrigger = 0;
 
+// UI
 function updateUI() {
-  current-count.innerText = count;
-  goal-display.innerText = goal;
-  progress-bar.style.width = (count/goal*100) + "%";
+  document.getElementById("current-count").innerText = count;
+  document.getElementById("goal-display").innerText = goal;
+  document.getElementById("progress-bar").style.width = (count/goal*100) + "%";
 }
 
 // SAVE
 async function saveData() {
   const today = new Date().toISOString().split("T")[0];
 
-  await setDoc(doc(db, "hydration", today), {
+  await window.setDoc(window.doc(window.db, "hydration", today), {
     date: today,
     glasses: count,
     completed: count >= goal
@@ -109,7 +111,8 @@ async function saveData() {
 // LOAD
 async function loadData() {
   const today = new Date().toISOString().split("T")[0];
-  const snap = await getDoc(doc(db, "hydration", today));
+
+  const snap = await window.getDoc(window.doc(window.db, "hydration", today));
 
   if (snap.exists()) {
     count = snap.data().glasses || 0;
@@ -117,8 +120,8 @@ async function loadData() {
   }
 }
 
-// ADD
-async function addGlass() {
+// ✅ FIXED (GLOBAL FUNCTIONS)
+window.addGlass = async function () {
   if (count < goal) {
     count++;
     updateUI();
@@ -128,20 +131,19 @@ async function addGlass() {
       showPopup(window.surpriseText || "🎁 Done 💙");
     }
   }
-}
+};
 
-// UNDO
-function undoGlass() {
+window.undoGlass = function () {
   if (count > 0) {
     count--;
     updateUI();
     saveData();
   }
-}
+};
 
 // STREAK
 async function calculateStreak() {
-  const snapshot = await getDocs(collection(db, "hydration"));
+  const snapshot = await window.getDocs(window.collection(window.db, "hydration"));
 
   let dates = [];
   snapshot.forEach(doc => {
@@ -156,6 +158,7 @@ async function calculateStreak() {
   for (let i = 0; i < dates.length; i++) {
     let d = new Date(dates[i]);
     let diff = Math.floor((today - d) / (1000*60*60*24));
+
     if (diff === streak) streak++;
     else break;
   }
@@ -165,9 +168,9 @@ async function calculateStreak() {
 
 // 🔥 REAL-TIME SETTINGS
 function listenSettings() {
-  const ref = doc(db, "settings", "main");
+  const ref = window.doc(window.db, "settings", "main");
 
-  onSnapshot(ref, (snap) => {
+  window.onSnapshot(ref, (snap) => {
     if (!snap.exists()) return;
 
     const data = snap.data();
@@ -177,7 +180,10 @@ function listenSettings() {
 
     if (data.trigger && data.trigger !== lastTrigger) {
       lastTrigger = data.trigger;
-      if (data.message) showPopup(data.message);
+
+      if (data.message) {
+        showPopup(data.message);
+      }
     }
 
     updateUI();
@@ -186,10 +192,15 @@ function listenSettings() {
 
 // POPUP
 function showPopup(text) {
-  popup-text.innerText = text;
+  const popup = document.getElementById("popup");
+  const txt = document.getElementById("popup-text");
+
+  txt.innerText = text;
   popup.style.display = "block";
 
-  setTimeout(() => popup.style.display = "none", 3000);
+  setTimeout(() => {
+    popup.style.display = "none";
+  }, 3000);
 }
 
 // INIT
