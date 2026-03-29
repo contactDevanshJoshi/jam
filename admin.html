@@ -1,180 +1,100 @@
 <!doctype html>
-<html lang="en" class="h-full">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
-
-<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<title>Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script&family=Quicksand&display=swap" rel="stylesheet">
-
 <style>
-body { font-family: 'Quicksand', sans-serif; }
-.glass { background: rgba(255,255,255,0.25); backdrop-filter: blur(20px); }
-.btn-glow { background: linear-gradient(135deg,#a8d8ff,#c4b5fd,#fbb6ce); }
-.title-font { font-family: 'Dancing Script', cursive; }
+body { font-family: sans-serif; padding:20px; }
+input, textarea { width:100%; margin:10px 0; padding:10px; }
+button { padding:10px; width:100%; }
 </style>
 </head>
 
-<body class="h-full">
+<body>
 
-<div class="h-full flex justify-center items-center" style="background:linear-gradient(160deg,#c5dff8,#f5d0de);">
+<h2>🔐 Admin Login</h2>
+<input type="password" id="password">
+<button onclick="login()">Login</button>
 
-<div class="w-full max-w-[420px] p-5">
+<div id="panel" style="display:none;">
 
-<!-- 🔐 LOGIN -->
-<div id="login-box">
-<h1 class="title-font text-3xl text-center mb-4">🔐 Admin Access</h1>
+<h3>Settings</h3>
 
-<input id="password" type="password" placeholder="Enter password"
-class="w-full p-3 rounded-xl mb-3">
+<label>Goal</label>
+<input id="goal" type="number">
 
-<button onclick="login()" class="btn-glow w-full py-3 rounded-xl text-white">
-Login
-</button>
+<label>Message / Surprise</label>
+<textarea id="msg"></textarea>
 
-<p id="error" class="text-red-500 text-center mt-2"></p>
-</div>
+<button onclick="send()">Send 🚀</button>
 
-<!-- ⚙️ ADMIN PANEL -->
-<div id="admin-panel" style="display:none;">
+<hr>
 
-<h1 class="title-font text-3xl text-center mb-4">⚙️ Control Panel</h1>
-
-<div class="glass rounded-xl p-4 mb-3">
-<label>Name</label>
-<input id="name" class="w-full p-2 rounded mt-1">
-</div>
-
-<div class="glass rounded-xl p-4 mb-3">
-<label>Daily Goal</label>
-<input id="goal" type="number" class="w-full p-2 rounded mt-1">
-</div>
-
-<div class="glass rounded-xl p-4 mb-3">
-<label>Surprise Message 🎁</label>
-<textarea id="surprise" class="w-full p-2 rounded mt-1"></textarea>
-</div>
-
-<button onclick="save()" class="btn-glow w-full py-3 rounded-xl text-white mb-3">
-Save Settings 💾
-</button>
-
-<button onclick="logout()" class="glass w-full py-2 rounded-xl">
-Logout
-</button>
-
-<!-- 📊 DASHBOARD -->
-<div class="glass rounded-xl p-4 mt-4">
-<p class="text-center mb-2">📊 Last 7 Days</p>
 <canvas id="chart"></canvas>
-</div>
 
 </div>
 
-</div>
-</div>
-
-<!-- 🔥 FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } 
+import { getFirestore, doc, setDoc, collection, getDocs } 
 from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } 
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } 
 from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
-const firebaseConfig = {
+const app = initializeApp({
   apiKey: "AIzaSyAdPWpNEMvjVrrGgn4MNeuq8X-QpyuSon0",
   authDomain: "water-3a73e.firebaseapp.com",
   projectId: "water-3a73e"
-};
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// 🔐 LOGIN
-window.login = async function() {
-  const password = document.getElementById("password").value;
-
-  try {
-    await signInWithEmailAndPassword(auth, "devansh@jamd.com", password);
-  } catch {
-    document.getElementById("error").innerText = "Wrong password ❌";
-  }
+// LOGIN
+window.login = async () => {
+  await signInWithEmailAndPassword(auth, "devansh@jamd.com", password.value);
 };
 
-// 🔄 AUTH STATE
-onAuthStateChanged(auth, (user) => {
+// SHOW PANEL
+onAuthStateChanged(auth, user => {
   if (user) {
-    document.getElementById("login-box").style.display = "none";
-    document.getElementById("admin-panel").style.display = "block";
-
-    loadSettings();
+    panel.style.display = "block";
     loadChart();
   }
 });
 
-// 🔓 LOGOUT
-window.logout = () => signOut(auth);
-
-// 💾 SAVE
-window.save = async function() {
+// SEND MESSAGE
+window.send = async () => {
   await setDoc(doc(db, "settings", "main"), {
-    name: document.getElementById("name").value,
-    goal: parseInt(document.getElementById("goal").value),
-    surprise: document.getElementById("surprise").value
+    goal: parseInt(goal.value),
+    surprise: msg.value,
+    message: msg.value,
+    trigger: Date.now()
   });
 
-  alert("Saved ✅");
+  alert("Sent 🚀");
 };
 
-// 🔄 LOAD SETTINGS
-async function loadSettings() {
-  const snap = await getDoc(doc(db, "settings", "main"));
-
-  if (snap.exists()) {
-    const data = snap.data();
-    name.value = data.name || "";
-    goal.value = data.goal || 12;
-    surprise.value = data.surprise || "";
-  }
-}
-
-// 📊 CHART
+// CHART
 async function loadChart() {
   const snapshot = await getDocs(collection(db, "hydration"));
 
   let map = {};
+  snapshot.forEach(d => map[d.data().date] = d.data().glasses);
 
-  snapshot.forEach(doc => {
-    map[doc.data().date] = doc.data().glasses;
-  });
+  let labels = [], values = [];
 
-  let labels = [];
-  let values = [];
-
-  for (let i = 6; i >= 0; i--) {
+  for (let i=6;i>=0;i--) {
     let d = new Date();
-    d.setDate(d.getDate() - i);
-
+    d.setDate(d.getDate()-i);
     let key = d.toISOString().split("T")[0];
-
     labels.push(key.slice(5));
     values.push(map[key] || 0);
   }
 
-  new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        tension: 0.4
-      }]
-    }
+  new Chart(chart, {
+    type:"line",
+    data:{labels,datasets:[{data:values}]}
   });
 }
 </script>
