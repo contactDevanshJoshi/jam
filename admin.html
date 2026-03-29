@@ -43,19 +43,16 @@ Login
 
 <h1 class="title-font text-3xl text-center mb-4">⚙️ Control Panel</h1>
 
-<!-- GOAL -->
 <div class="glass rounded-xl p-4 mb-3">
 <label>Daily Goal</label>
 <input id="goal" type="number" class="w-full p-2 rounded mt-1">
 </div>
 
-<!-- MESSAGE -->
 <div class="glass rounded-xl p-4 mb-3">
 <label>Send Message 💬</label>
 <textarea id="message" class="w-full p-2 rounded mt-1"></textarea>
 </div>
 
-<!-- SURPRISE -->
 <div class="glass rounded-xl p-4 mb-3">
 <label>Surprise Message 🎁</label>
 <textarea id="surprise" class="w-full p-2 rounded mt-1"></textarea>
@@ -69,7 +66,6 @@ Send / Update 🚀
 Logout
 </button>
 
-<!-- 📊 DASHBOARD -->
 <div class="glass rounded-xl p-4 mt-4">
 <p class="text-center mb-2">📊 Last 7 Days</p>
 <canvas id="chart"></canvas>
@@ -98,36 +94,41 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// 🔐 LOGIN
-window.login = async function() {
+// ✅ LOGIN (GLOBAL)
+window.login = async function () {
   try {
-    await signInWithEmailAndPassword(auth, "devansh@jamd.com", password.value);
+    const pass = document.getElementById("password").value;
+
+    await signInWithEmailAndPassword(auth, "devansh@jamd.com", pass);
+
   } catch {
     document.getElementById("error").innerText = "Wrong password ❌";
   }
 };
 
 // 🔄 AUTH STATE
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, (user) => {
   if (user) {
-    login-box.style.display = "none";
-    panel.style.display = "block";
+    document.getElementById("login-box").style.display = "none";
+    document.getElementById("panel").style.display = "block";
 
     loadSettings();
     loadChart();
   }
 });
 
-// 🔓 LOGOUT
-window.logout = () => signOut(auth);
+// ✅ LOGOUT
+window.logout = function () {
+  signOut(auth);
+};
 
-// 💾 SEND / UPDATE
-window.send = async function() {
+// ✅ SEND DATA (REAL-TIME TRIGGER)
+window.send = async function () {
   await setDoc(doc(db, "settings", "main"), {
-    goal: parseInt(goal.value),
-    surprise: surprise.value,
-    message: message.value,
-    trigger: Date.now() // 🔥 triggers real-time popup
+    goal: parseInt(document.getElementById("goal").value),
+    surprise: document.getElementById("surprise").value,
+    message: document.getElementById("message").value,
+    trigger: Date.now()
   });
 
   alert("Sent 🚀");
@@ -140,8 +141,8 @@ async function loadSettings() {
   if (snap.exists()) {
     const data = snap.data();
 
-    goal.value = data.goal || 12;
-    surprise.value = data.surprise || "";
+    document.getElementById("goal").value = data.goal || 12;
+    document.getElementById("surprise").value = data.surprise || "";
   }
 }
 
@@ -167,7 +168,7 @@ async function loadChart() {
   new Chart(document.getElementById("chart"), {
     type: "line",
     data: {
-      labels,
+      labels: labels,
       datasets: [{
         label: "Glasses",
         data: values,
