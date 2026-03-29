@@ -87,7 +87,7 @@ window.dispatchEvent(new Event("firebase-ready"));
 <!-- MAIN SCRIPT -->
 <script>
 let count = 0;
-let goal = 12;
+let goal = 12; // default fallback
 let lastTrigger = 0;
 
 // UI
@@ -120,7 +120,7 @@ async function loadData() {
   }
 }
 
-// ✅ FIXED (GLOBAL FUNCTIONS)
+// ✅ GLOBAL FUNCTIONS (FIXED)
 window.addGlass = async function () {
   if (count < goal) {
     count++;
@@ -166,7 +166,7 @@ async function calculateStreak() {
   document.getElementById("streak-count").innerText = `🔥 ${streak} days`;
 }
 
-// 🔥 REAL-TIME SETTINGS
+// 🔥 REAL-TIME SETTINGS (DYNAMIC GOAL FIXED)
 function listenSettings() {
   const ref = window.doc(window.db, "settings", "main");
 
@@ -175,9 +175,17 @@ function listenSettings() {
 
     const data = snap.data();
 
-    if (data.goal) goal = data.goal;
+    // ✅ dynamic goal (correct way)
+    if (data.goal !== undefined) {
+      goal = data.goal;
+
+      // prevent overflow
+      if (count > goal) count = goal;
+    }
+
     if (data.surprise) window.surpriseText = data.surprise;
 
+    // live message trigger
     if (data.trigger && data.trigger !== lastTrigger) {
       lastTrigger = data.trigger;
 
