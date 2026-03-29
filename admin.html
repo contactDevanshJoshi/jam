@@ -1,55 +1,80 @@
 <!doctype html>
-<html>
+<html lang="en" class="h-full">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel</title>
 
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script&family=Quicksand&display=swap" rel="stylesheet">
+
 <style>
-body { font-family: sans-serif; padding:20px; }
-input, textarea { width:100%; margin:10px 0; padding:10px; }
-button { padding:10px; width:100%; margin-top:10px; }
-#admin-panel { display:none; }
+body { font-family: 'Quicksand', sans-serif; }
+.glass { background: rgba(255,255,255,0.25); backdrop-filter: blur(20px); }
+.btn-glow { background: linear-gradient(135deg,#a8d8ff,#c4b5fd,#fbb6ce); }
+.title-font { font-family: 'Dancing Script', cursive; }
 </style>
 </head>
 
-<body>
+<body class="h-full">
+
+<div class="h-full flex justify-center items-center" style="background:linear-gradient(160deg,#c5dff8,#f5d0de);">
+
+<div class="w-full max-w-[420px] p-5">
 
 <!-- 🔐 LOGIN -->
 <div id="login-box">
-  <h2>🔐 Admin Login</h2>
+<h1 class="title-font text-3xl text-center mb-4">🔐 Admin Access</h1>
 
-  <input type="password" id="password" placeholder="Enter password">
-  <button onclick="login()">Login</button>
+<input id="password" type="password" placeholder="Enter password"
+class="w-full p-3 rounded-xl mb-3">
 
-  <p id="error" style="color:red;"></p>
+<button onclick="login()" class="btn-glow w-full py-3 rounded-xl text-white">
+Login
+</button>
+
+<p id="error" class="text-red-500 text-center mt-2"></p>
 </div>
 
 <!-- ⚙️ ADMIN PANEL -->
-<div id="admin-panel">
+<div id="admin-panel" style="display:none;">
 
-  <h2>⚙️ Admin Panel</h2>
+<h1 class="title-font text-3xl text-center mb-4">⚙️ Control Panel</h1>
 
-  <label>Her Name</label>
-  <input id="name">
+<div class="glass rounded-xl p-4 mb-3">
+<label>Name</label>
+<input id="name" class="w-full p-2 rounded mt-1">
+</div>
 
-  <label>Daily Goal</label>
-  <input id="goal" type="number">
+<div class="glass rounded-xl p-4 mb-3">
+<label>Daily Goal</label>
+<input id="goal" type="number" class="w-full p-2 rounded mt-1">
+</div>
 
-  <label>Surprise Message 🎁</label>
-  <textarea id="surprise"></textarea>
+<div class="glass rounded-xl p-4 mb-3">
+<label>Surprise Message 🎁</label>
+<textarea id="surprise" class="w-full p-2 rounded mt-1"></textarea>
+</div>
 
-  <button onclick="save()">Save Settings 💾</button>
+<button onclick="save()" class="btn-glow w-full py-3 rounded-xl text-white mb-3">
+Save Settings 💾
+</button>
 
-  <button onclick="logout()">Logout</button>
+<button onclick="logout()" class="glass w-full py-2 rounded-xl">
+Logout
+</button>
 
-  <hr>
+<!-- 📊 DASHBOARD -->
+<div class="glass rounded-xl p-4 mt-4">
+<p class="text-center mb-2">📊 Last 7 Days</p>
+<canvas id="chart"></canvas>
+</div>
 
-  <!-- 📊 DASHBOARD -->
-  <h3>📊 Last 7 Days Progress</h3>
-  <canvas id="chart" height="200"></canvas>
+</div>
 
+</div>
 </div>
 
 <!-- 🔥 FIREBASE -->
@@ -60,14 +85,12 @@ from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } 
 from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
-// CONFIG
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
+  apiKey: "AIzaSyAdPWpNEMvjVrrGgn4MNeuq8X-QpyuSon0",
   authDomain: "water-3a73e.firebaseapp.com",
   projectId: "water-3a73e"
 };
 
-// INIT
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -78,12 +101,12 @@ window.login = async function() {
 
   try {
     await signInWithEmailAndPassword(auth, "devansh@jamd.com", password);
-  } catch (err) {
+  } catch {
     document.getElementById("error").innerText = "Wrong password ❌";
   }
 };
 
-// 🔄 AUTO LOGIN CHECK
+// 🔄 AUTH STATE
 onAuthStateChanged(auth, (user) => {
   if (user) {
     document.getElementById("login-box").style.display = "none";
@@ -95,11 +118,9 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // 🔓 LOGOUT
-window.logout = function() {
-  signOut(auth);
-};
+window.logout = () => signOut(auth);
 
-// 💾 SAVE SETTINGS
+// 💾 SAVE
 window.save = async function() {
   await setDoc(doc(db, "settings", "main"), {
     name: document.getElementById("name").value,
@@ -116,22 +137,20 @@ async function loadSettings() {
 
   if (snap.exists()) {
     const data = snap.data();
-
-    document.getElementById("name").value = data.name || "";
-    document.getElementById("goal").value = data.goal || 12;
-    document.getElementById("surprise").value = data.surprise || "";
+    name.value = data.name || "";
+    goal.value = data.goal || 12;
+    surprise.value = data.surprise || "";
   }
 }
 
-// 📊 LOAD CHART
+// 📊 CHART
 async function loadChart() {
   const snapshot = await getDocs(collection(db, "hydration"));
 
-  let dataMap = {};
+  let map = {};
 
   snapshot.forEach(doc => {
-    const d = doc.data();
-    dataMap[d.date] = d.glasses;
+    map[doc.data().date] = doc.data().glasses;
   });
 
   let labels = [];
@@ -141,18 +160,17 @@ async function loadChart() {
     let d = new Date();
     d.setDate(d.getDate() - i);
 
-    let dateStr = d.toISOString().split("T")[0];
+    let key = d.toISOString().split("T")[0];
 
-    labels.push(dateStr.slice(5));
-    values.push(dataMap[dateStr] || 0);
+    labels.push(key.slice(5));
+    values.push(map[key] || 0);
   }
 
   new Chart(document.getElementById("chart"), {
     type: "line",
     data: {
-      labels: labels,
+      labels,
       datasets: [{
-        label: "Glasses",
         data: values,
         tension: 0.4
       }]
