@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hydration Tracker</title>
+
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* KEEPING YOUR ORIGINAL STYLES EXACTLY */
+html, body { height: 100%; margin: 0; }
+body { font-family: 'Quicksand', sans-serif; }
+
+.glass { background: rgba(255,255,255,0.25); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.4); }
+.glass-strong { background: rgba(255,255,255,0.35); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.5); }
+.glow-card { background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,210,230,0.25)); box-shadow: 0 0 30px rgba(200,170,255,0.2); }
+.btn-glow { background: linear-gradient(135deg,#a8d8ff,#c4b5fd,#fbb6ce); }
+.progress-fill { background: linear-gradient(90deg,#a8d8ff,#c4b5fd,#fbb6ce); }
+.title-font { font-family: 'Dancing Script', cursive; }
+</style>
+
+<!-- 🔥 Firebase (ADDED) -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs } 
+from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAdPWpNEMvjVrrGgn4MNeuq8X-QpyuSon0",
+  authDomain: "water-3a73e.firebaseapp.com",
+  projectId: "water-3a73e"
+};
+
+const app = initializeApp(firebaseConfig);
+window.db = getFirestore(app);
+</script>
+
+</head>
+
+<body class="h-full">
+
+<div id="app" class="h-full flex justify-center" style="background: linear-gradient(160deg,#c5dff8,#f5d0de);">
+
+<div class="w-full max-w-[420px] px-5 py-6">
+
+<h1 class="title-font text-3xl text-center mb-4">💧 Hydration for You 💙</h1>
+
+<p class="text-center text-4xl mb-3">
+<span id="current-count">0</span> / <span id="goal-display">12</span>
+</p>
+
+<div class="w-full bg-white rounded-full h-3 mb-4">
+<div id="progress-bar" class="h-3 rounded-full progress-fill" style="width:0%"></div>
+</div>
+
+<button onclick="addGlass()" class="btn-glow w-full py-3 rounded-xl text-white mb-2">
++1 Glass 💧
+</button>
+
+<button onclick="undoGlass()" class="w-full py-2 rounded-xl glass">
+Undo
+</button>
+
+<!-- 🔥 STREAK UI -->
+<div class="glass rounded-2xl p-4 text-center mt-4">
+<p style="font-size:12px; opacity:0.6;">Current Streak</p>
+<p id="streak-count" style="font-size:22px;">🔥 0 days</p>
+</div>
+
+</div>
+</div>
+
+<script>
+let count = 0;
+let goal = 12;
+
+// UI update
+function updateUI() {
+  document.getElementById("current-count").innerText = count;
+  document.getElementById("goal-display").innerText = goal;
+  document.getElementById("progress-bar").style.width = (count/goal*100) + "%";
+}
+
+// SAVE
+async function saveData() {
+  if (!window.db) return;
+  const today = new Date().toISOString().split("T")[0];
+
+  await setDoc(doc(window.db, "hydration", today), {
+    date: today,
+    glasses: count,
+    completed: count >= goal
+  });
+}
+
+// LOAD
+async function loadData() {
+  if (!window.db) return;
+  const today = new Date().toISOString().split("T")[0];
+
+  const docSnap = await getDoc(doc(window.db, "hydration", today));
+  if (docSnap.exists()) {
+    count = docSnap.data().glasses || 0;
+    updateUI();
+  }
+}
+
+// ADD
+async function addGlass() {
+  if (count < goal) {
+    count++;
+    updateUI();
+    await saveData();
+    calculateStreak();
+
+    if (count === goal) {
+      alert("🎁 Surprise 💙 I'm proud of you 😌");
+    }
+  }
+}
+
+// UNDO
+function undoGlass() {
+  if (count > 0) {
+    count--;
+    updateUI();
+    saveData();
+  }
+}
+
+// 🔥 STREAK
+async function calculateStreak() {
+  if (!window.db) return;
+
+  const snapshot = await getDocs(collection(window.db, "hydration"));
+
+  let dates = [];
+
+  snapshot.forEach(doc => {
+    if (doc.data().completed) dates.push(doc.data().date);
+  });
+
+  dates.sort().reverse();
+
+  let streak = 0;
+  let today = new Date();
+
+  for (let i = 0; i < dates.length; i++) {
+    let d = new Date(dates[i]);
+    let diff = Math.floor((today - d) / (1000*60*60*24));
+
+    if (diff === streak) streak++;
+    else break;
+  }
+
+  document.getElementById("streak-count").innerText = `🔥 ${streak} days`;
+}
+
+// INIT
+loadData();
+calculateStreak();
+updateUI();
+</script>
+
+</body>
+</html>
