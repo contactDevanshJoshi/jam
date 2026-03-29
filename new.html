@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hydration Tracker</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="flex items-center justify-center h-screen bg-blue-100">
+
+<div class="text-center">
+  <h1 class="text-2xl mb-4">💧 Hydration Tracker</h1>
+
+  <button onclick="enableNotifications()" class="bg-blue-500 text-white px-4 py-2 rounded">
+    🔔 Enable Notifications
+  </button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getMessaging, getToken } 
+from "https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAdPWpNEMvjVrrGgn4MNeuq8X-QpyuSon0",
+  authDomain: "water-3a73e.firebaseapp.com",
+  projectId: "water-3a73e",
+  messagingSenderId: "779564094485",
+  appId: "1:779564094485:web:10124db8aa9a798d172a1c"
+};
+
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
+
+// 🔥 REGISTER SERVICE WORKER
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/firebase-messaging-sw.js")
+    .then(() => console.log("Service Worker Registered"));
+}
+
+// 🔔 ENABLE NOTIFICATIONS
+window.enableNotifications = async function () {
+  const permission = await Notification.requestPermission();
+
+  if (permission === "granted") {
+    const token = await getToken(messaging, {
+      vapidKey: "BHgoPzMnTBT2uLkuCHNF9CCaeot35qZQSentgd-aYgEmThMZKV5mUUEkGTucMpL61XxZCZSXtXhrPNufSkKZv2E"
+    });
+
+    console.log("🔥 USER TOKEN:", token);
+    alert("Notifications enabled ✅");
+  } else {
+    alert("Permission denied ❌");
+  }
+};
+</script>
+
+</body>
+</html>
