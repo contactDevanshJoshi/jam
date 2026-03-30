@@ -58,6 +58,22 @@ Login
 <textarea id="surprise" class="w-full p-2 rounded mt-1"></textarea>
 </div>
 
+<!-- 🔔 NOTIFICATION SECTION -->
+<div class="glass rounded-xl p-4 mb-3">
+<label class="block mb-2">🔔 Send Notification</label>
+
+<div class="grid grid-cols-2 gap-2">
+<button onclick="sendPreset('morning')" class="btn-glow py-2 rounded-xl text-white">🌅 Morning</button>
+<button onclick="sendPreset('afternoon')" class="btn-glow py-2 rounded-xl text-white">☀️ Afternoon</button>
+<button onclick="sendPreset('evening')" class="btn-glow py-2 rounded-xl text-white">🌇 Evening</button>
+<button onclick="sendPreset('night')" class="btn-glow py-2 rounded-xl text-white">🌙 Night</button>
+</div>
+
+<button onclick="sendCustomNotification()" class="glass w-full py-2 rounded-xl mt-3">
+✍️ Send Custom Message
+</button>
+</div>
+
 <button onclick="send()" class="btn-glow w-full py-3 rounded-xl text-white mb-3">
 Send / Update 🚀
 </button>
@@ -108,6 +124,41 @@ async function sendNotification(title, message) {
   });
 }
 
+// 🔥 PRESET NOTIFICATIONS
+window.sendPreset = function(type) {
+
+  let title = "";
+  let message = "";
+
+  if (type === "morning") {
+    title = "Drink Water, Jam 💧";
+    message = "💧 Start your day with a sip, not stress";
+  }
+
+  if (type === "afternoon") {
+    title = "Refill Time, Jam 😅💧";
+    message = "Don’t dry text… or dry body 💧";
+  }
+
+  if (type === "evening") {
+    title = "Good Evening, Jam 😉";
+    message = "You survived today… now hydrate 💦";
+  }
+
+  if (type === "night") {
+    title = "Good Night, Jam 😴";
+    message = "Last sip before you dip 💧";
+  }
+
+  sendNotification(title, message);
+};
+
+// ✍️ CUSTOM NOTIFICATION
+window.sendCustomNotification = function () {
+  const msg = document.getElementById("message").value;
+  sendNotification("💧 Hydration", msg);
+};
+
 // ✅ LOGIN
 window.login = async function () {
   try {
@@ -134,44 +185,16 @@ window.logout = function () {
   signOut(auth);
 };
 
-// 🚀 SEND (UPDATED WITH NOTIFICATIONS)
+// 🚀 FIREBASE UPDATE
 window.send = async function () {
-
-  const msg = document.getElementById("message").value;
-
-  let title = "💧 Hydration";
-  let message = msg;
-
-  if (msg.toLowerCase().includes("morning")) {
-    title = "Drink Water, Jam 💧";
-    message = "💧 Start your day with a sip, not stress";
-  }
-
-  else if (msg.toLowerCase().includes("afternoon")) {
-    title = "Refill Time, Jam 😅💧";
-    message = "Don’t dry text… or dry body 💧";
-  }
-
-  else if (msg.toLowerCase().includes("evening")) {
-    title = "Good Evening, Jam 😉";
-    message = "You survived today… now hydrate 💦";
-  }
-
-  else if (msg.toLowerCase().includes("night")) {
-    title = "Good Night, Jam 😴";
-    message = "Last sip before you dip 💧";
-  }
-
   await setDoc(doc(db, "settings", "main"), {
     goal: parseInt(document.getElementById("goal").value),
     surprise: document.getElementById("surprise").value,
-    message: msg,
+    message: document.getElementById("message").value,
     trigger: Date.now()
   });
 
-  await sendNotification(title, message);
-
-  alert("Sent 🚀");
+  alert("Updated 🚀");
 };
 
 // 🔄 LOAD SETTINGS
