@@ -94,13 +94,25 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// ✅ LOGIN (GLOBAL)
+// 🔔 YOUR WORKER URL
+const WORKER_URL = "https://YOUR-WORKER-URL.workers.dev";
+
+// 🔔 SEND NOTIFICATION
+async function sendNotification(title, message) {
+  await fetch(WORKER_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ title, message })
+  });
+}
+
+// ✅ LOGIN
 window.login = async function () {
   try {
     const pass = document.getElementById("password").value;
-
     await signInWithEmailAndPassword(auth, "devansh@jamd.com", pass);
-
   } catch {
     document.getElementById("error").innerText = "Wrong password ❌";
   }
@@ -122,14 +134,42 @@ window.logout = function () {
   signOut(auth);
 };
 
-// ✅ SEND DATA (REAL-TIME TRIGGER)
+// 🚀 SEND (UPDATED WITH NOTIFICATIONS)
 window.send = async function () {
+
+  const msg = document.getElementById("message").value;
+
+  let title = "💧 Hydration";
+  let message = msg;
+
+  if (msg.toLowerCase().includes("morning")) {
+    title = "Drink Water, Jam 💧";
+    message = "💧 Start your day with a sip, not stress";
+  }
+
+  else if (msg.toLowerCase().includes("afternoon")) {
+    title = "Refill Time, Jam 😅💧";
+    message = "Don’t dry text… or dry body 💧";
+  }
+
+  else if (msg.toLowerCase().includes("evening")) {
+    title = "Good Evening, Jam 😉";
+    message = "You survived today… now hydrate 💦";
+  }
+
+  else if (msg.toLowerCase().includes("night")) {
+    title = "Good Night, Jam 😴";
+    message = "Last sip before you dip 💧";
+  }
+
   await setDoc(doc(db, "settings", "main"), {
     goal: parseInt(document.getElementById("goal").value),
     surprise: document.getElementById("surprise").value,
-    message: document.getElementById("message").value,
+    message: msg,
     trigger: Date.now()
   });
+
+  await sendNotification(title, message);
 
   alert("Sent 🚀");
 };
@@ -140,7 +180,6 @@ async function loadSettings() {
 
   if (snap.exists()) {
     const data = snap.data();
-
     document.getElementById("goal").value = data.goal || 12;
     document.getElementById("surprise").value = data.surprise || "";
   }
